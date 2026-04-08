@@ -1,0 +1,13 @@
+# Railway 部署設定檔（放在 frontend/client/ 目錄下）
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "../../deploy/frontend/Dockerfile"
+
+[deploy]
+startCommand = "nginx -g 'daemon off;'"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "frontend"

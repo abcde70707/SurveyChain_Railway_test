@@ -1,11 +1,13 @@
 /**
  * REST API 客戶端
  * 對應 Go 後端（Gin）提供的 /api/* 路由
- * 前端透過 Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
+ * 本地開發：Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
+ * Railway 部署：設定 VITE_API_URL 環境變數指向後端公開 URL
  */
 
-// ★ 修正：支援 Railway 正式部署，本地開發時 VITE_API_BASE_URL 為空，走 Vite proxy
-const BASE = (import.meta.env.VITE_API_BASE_URL ?? "") + "/api";
+// 本地開發時為空字串（由 Vite proxy 接手）
+// Railway 部署時填入後端完整 URL，例如 https://backend-xxx.railway.app
+const API_BASE = (import.meta.env.VITE_API_URL ?? "") + "/api";
 
 // ─── JWT Token 管理 ──────────────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   });
