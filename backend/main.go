@@ -51,8 +51,13 @@ func main() {
 	// 註冊所有 API 路由（前綴 /api）
 	routes.Register(r)
 
-	log.Println("Go 後端啟動，監聽 port 8080...")
-	if err := r.Run(":8080"); err != nil {
+	// ★ 修正：支援 Railway 動態分配的 PORT 環境變數
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Go 後端啟動，監聽 port %s...", port)
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("啟動失敗: %v", err)
 	}
 }

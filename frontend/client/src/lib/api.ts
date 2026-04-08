@@ -4,6 +4,7 @@
  * 前端透過 Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
  */
 
+// ★ 修正：支援 Railway 正式部署，本地開發時 VITE_API_BASE_URL 為空，走 Vite proxy
 const BASE = (import.meta.env.VITE_API_BASE_URL ?? "") + "/api";
 
 // ─── JWT Token 管理 ──────────────────────────────────────────────────────────
