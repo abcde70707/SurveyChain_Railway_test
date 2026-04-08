@@ -4,7 +4,7 @@
  * 前端透過 Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
  */
 
-const BASE = "/api";
+const BASE = (import.meta.env.VITE_API_BASE_URL ?? "") + "/api";
 
 // ─── JWT Token 管理 ──────────────────────────────────────────────────────────
 
