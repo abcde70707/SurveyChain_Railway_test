@@ -1,17 +1,17 @@
 /**
  * REST API 客戶端
  * 對應 Go 後端（Gin）提供的 /api/* 路由
- * 本地開發：Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
- * Railway 部署：設定 VITE_API_URL 環境變數指向後端公開 URL
+ * 開發環境：透過 Vite proxy 將 /api/* 轉發到 Go 後端（port 8080）
+ * 生產環境：透過 VITE_API_BASE_URL 環境變數指定後端完整網址
  */
 
-// 本地開發時為空字串（由 Vite proxy 接手）
-// Railway 部署時填入後端完整 URL，例如 https://backend-xxx.railway.app
-const API_BASE = (import.meta.env.VITE_API_URL ?? "") + "/api";
+// ★ 修改：支援生產環境的後端 URL（Railway 部署必須設定 VITE_API_BASE_URL）
+const BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : "/api";
 
 // ─── JWT Token 管理 ──────────────────────────────────────────────────────────
 
-// ★ 新增：在 localStorage 存取 JWT token
 export function getAuthToken(): string | null {
   return localStorage.getItem("auth_token");
 }
@@ -26,7 +26,6 @@ export function clearAuthToken(): void {
 
 // ─── 通用 fetch 包裝 ──────────────────────────────────────────────────────────
 
-// ★ 修正：加入 requiresAuth 參數，需要登入的路由自動帶上 Authorization header
 async function request<T>(
   path: string,
   options?: RequestInit,
@@ -37,7 +36,6 @@ async function request<T>(
     ...(options?.headers as Record<string, string>),
   };
 
-  // ★ 核心修正：若需要認證，從 localStorage 取出 JWT token 加入 header
   if (requiresAuth) {
     const token = getAuthToken();
     if (token) {
@@ -45,13 +43,12 @@ async function request<T>(
     }
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers,
   });
 
   if (!res.ok) {
-    // ★ 新增：401 時清除失效 token，讓使用者重新登入
     if (res.status === 401) {
       clearAuthToken();
     }
@@ -107,7 +104,6 @@ export interface Survey {
   qualifiedAddresses?: string | string[] | null;
   entryFee: string;
   entryFeeCollected: string;
-  // ★ 新增：合約 Pool ID 與 Pool 類型（對應合約的 countA/countB）
   contractPoolId?: number | null;
   poolType?: "A" | "B" | null;
   createdAt: string;
@@ -139,11 +135,9 @@ export interface Participant {
 // ─── 認證 API ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  /** 取得 nonce（用於 MetaMask 簽名） */
   getNonce: (wallet: string): Promise<{ nonce: string }> =>
     request(`/auth/nonce?wallet=${wallet.toLowerCase()}`),
 
-  /** 驗證 MetaMask 簽名，成功後取得 JWT token */
   verify: (wallet: string, signature: string): Promise<{ success: boolean; token: string; wallet: string }> =>
     request("/auth/verify", {
       method: "POST",
@@ -154,7 +148,6 @@ export const authApi = {
 // ─── 問卷 API ─────────────────────────────────────────────────────────────────
 
 export const surveyApi = {
-  /** 取得問卷列表（可選 status 篩選） */
   list: (
     status?: string,
     creator?: string,
@@ -170,10 +163,8 @@ export const surveyApi = {
     return request<SurveyWithCount[]>(`/surveys${suffix}`);
   },
 
-  /** 取得單一問卷詳情（含題目、選項） */
   get: (id: number): Promise<Survey> => request<Survey>(`/surveys/${id}`),
 
-  /** 創建新問卷 - ★ 修正：requiresAuth = true */
   create: (data: {
     title: string;
     description?: string;
@@ -194,7 +185,6 @@ export const surveyApi = {
   }): Promise<{ success: boolean; surveyId: number }> =>
     request("/surveys", { method: "POST", body: JSON.stringify(data) }, true),
 
-  /** 更新問卷狀態 - ★ 修正：requiresAuth = true */
   updateStatus: (
     id: number,
     data: {
@@ -205,44 +195,29 @@ export const surveyApi = {
       drawTransactionHash?: string;
     }
   ): Promise<{ success: boolean }> =>
-    request(
-      `/surveys/${id}/status`,
-      { method: "PATCH", body: JSON.stringify(data) },
-      true
-    ),
+    request(`/surveys/${id}/status`, { method: "PATCH", body: JSON.stringify(data) }, true),
 
-  /** 更新問卷合約地址 - ★ 修正：requiresAuth = true，加入 contractPoolId 與 poolType */
   updateContract: (
     id: number,
     data: {
       contractAddress: string;
       transactionHash?: string;
-      contractPoolId?: number; // ★ 合約內的 Pool ID（從 1 開始）
-      poolType?: "A" | "B";   // ★ Pool 類型，必須與 contractPoolId 同時提供
+      contractPoolId?: number;
+      poolType?: "A" | "B";
     }
   ): Promise<{ success: boolean }> =>
-    request(
-      `/surveys/${id}/contract`,
-      { method: "PATCH", body: JSON.stringify(data) },
-      true
-    ),
+    request(`/surveys/${id}/contract`, { method: "PATCH", body: JSON.stringify(data) }, true),
 
-  /** 執行抽獎 - ★ 修正：requiresAuth = true，加入 winnerAddresses（鏈上結果） */
   draw: (
     id: number,
     data: {
       callerAddress: string;
       drawTransactionHash?: string;
-      winnerAddresses?: string[]; // ★ 從鏈上 WinnersSelected 事件解析到的中獎者
+      winnerAddresses?: string[];
     }
   ): Promise<{ success: boolean; winners: string[] }> =>
-    request(
-      `/surveys/${id}/draw`,
-      { method: "POST", body: JSON.stringify(data) },
-      true
-    ),
+    request(`/surveys/${id}/draw`, { method: "POST", body: JSON.stringify(data) }, true),
 
-  /** 創建者公布選擇題正確答案 - ★ 修正：requiresAuth = true */
   revealAnswers: (
     id: number,
     data: {
@@ -253,24 +228,18 @@ export const surveyApi = {
       }[];
     }
   ): Promise<RevealAnswersResponse> =>
-    request(
-      `/surveys/${id}/answers`,
-      { method: "POST", body: JSON.stringify(data) },
-      true
-    ),
+    request(`/surveys/${id}/answers`, { method: "POST", body: JSON.stringify(data) }, true),
 
-  /** 取得可進入鏈上抽獎的資格地址列表 */
   getQualified: (id: number): Promise<{
     success: boolean;
     qualifiedCount: number;
-    qualifiedAddresses: string[]; // ★ 修正：欄位名稱已與後端對齊
+    qualifiedAddresses: string[];
   }> => request(`/surveys/${id}/qualified`),
 };
 
 // ─── 參與者 API ───────────────────────────────────────────────────────────────
 
 export const participantApi = {
-  /** 提交問卷答案 - ★ 修正：requiresAuth = true */
   submit: (data: {
     surveyId: number;
     walletAddress: string;
@@ -293,19 +262,15 @@ export const participantApi = {
           answers: data.answers,
         }),
       },
-      true // ★ 需要 JWT
+      true
     ),
 
-  /** 檢查錢包是否已參與（公開路由，不需要 JWT） */
   checkParticipation: (
     surveyId: number,
     wallet: string
   ): Promise<{ participated: boolean; isWinner: boolean; participantId?: number }> =>
-    request(
-      `/surveys/${surveyId}/check-participation?wallet=${wallet.toLowerCase()}`
-    ),
+    request(`/surveys/${surveyId}/check-participation?wallet=${wallet.toLowerCase()}`),
 
-  /** 取得問卷所有參與者（公開路由） */
   list: (surveyId: number): Promise<Participant[]> =>
     request(`/surveys/${surveyId}/participants`),
 };

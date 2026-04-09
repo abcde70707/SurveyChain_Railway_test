@@ -18,16 +18,14 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        // 本地開發預設代理到本機後端
-        // Docker / Railway 環境由 Nginx 或 VITE_API_URL 接管
-        target: process.env.VITE_API_URL ?? "http://127.0.0.1:8080",
+        target: "http://127.0.0.1:8080",
         changeOrigin: true,
       },
     },
   },
   build: {
-    // 輸出目錄（Nginx 會 serve 這裡）
     outDir: "dist",
-    sourcemap: false,
+    // 生產環境下不使用 proxy，API 請求改用環境變數指定的後端 URL
+    // 請確保 src/lib/api.ts 使用 VITE_API_BASE_URL
   },
 });

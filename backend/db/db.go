@@ -44,21 +44,17 @@ func Init() {
 
 // buildDSN 從環境變數組合 PostgreSQL 連線字串
 func buildDSN() string {
-    // Railway PostgreSQL 提供完整 URL，優先使用
-    if url := os.Getenv("DATABASE_URL"); url != "" {
-        return url
-    }
-    // fallback：本地或逐一設定的環境變數
-    host := getEnv("DB_HOST", "localhost")
-    port := getEnv("DB_PORT", "5432")
-    user := getEnv("DB_USER", "postgres")
-    password := getEnv("DB_PASSWORD", "")
-    dbname := getEnv("DB_NAME", "web3survey")
-    sslmode := getEnv("DB_SSLMODE", "disable")
-    return fmt.Sprintf(
-        "host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=Asia/Taipei",
-        host, port, user, password, dbname, sslmode,
-    )
+	host := getEnv("DB_HOST", "localhost")
+	port := getEnv("DB_PORT", "5432")
+	user := getEnv("DB_USER", "postgres")
+	password := getEnv("DB_PASSWORD", "")
+	dbname := getEnv("DB_NAME", "web3survey")
+	sslmode := getEnv("DB_SSLMODE", "disable")
+
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=Asia/Taipei",
+		host, port, user, password, dbname, sslmode,
+	)
 }
 
 func getEnv(key, fallback string) string {
