@@ -8,9 +8,12 @@ RUN npm ci
 
 COPY . .
 
-# VITE_CONTRACT_ADDRESS 在 build time 透過 ARG 注入
+# build time 環境變數：透過 ARG 注入，讓 Vite 能在編譯時讀到
 ARG VITE_CONTRACT_ADDRESS
 ENV VITE_CONTRACT_ADDRESS=$VITE_CONTRACT_ADDRESS
+
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
 
