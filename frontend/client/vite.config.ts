@@ -23,9 +23,4 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    outDir: "dist",
-    // 生產環境下不使用 proxy，API 請求改用環境變數指定的後端 URL
-    // 請確保 src/lib/api.ts 使用 VITE_API_BASE_URL
-  },
 });
